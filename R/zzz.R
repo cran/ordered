@@ -7,14 +7,18 @@
 .onLoad <- function(libname, pkgname) {
   # `ordinal_reg`
   make_ordinal_reg_polr()
-  make_ordinal_reg_ordinalNet()
+  make_ordinal_reg_clm()
+  make_ordinal_reg_lrm()
   make_ordinal_reg_vglm()
+  make_ordinal_reg_ordinalNet()
+  make_ordinal_reg_glmnetcr()
   # `gen_additive_mod`
   make_gen_additive_mod_vgam()
   # `decision_tree`
   make_decision_tree_rpartScore()
   # `rand_forest`
   make_rand_forest_ordinalForest()
+  make_rand_forest_orf()
 }
 
 # nocov end

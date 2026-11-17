@@ -14,13 +14,15 @@ status](https://www.r-pkg.org/badges/version/ordered)](https://CRAN.R-project.or
 coverage](https://codecov.io/gh/corybrunson/ordered/branch/main/graph/badge.svg)](https://app.codecov.io/gh/corybrunson/ordered?branch=main)
 <!-- badges: end -->
 
-`ordered` is a [parsnip](https://parsnip.tidymodels.org/) extension to
+ordered is a [parsnip](https://parsnip.tidymodels.org/) extension to
 enable additional classification models for ordinal outcomes (e.g.,
 “low”, “medium”, “high”). While there are several model/engine
 combinations in the parsnip package that can be used, this package adds:
 
 - cumulative link (cumulative logit) ordinal regression via
   `MASS::polr()`
+- cumulative link ordinal regression via `ordinal::clm()` ([Christensen,
+  2023](https://cran.r-project.org/package=ordinal/vignettes/clm_article.pdf))
 - generalized linear and generalized additive ordinal regression models
   of cumulative link, adjacent categories, continuation ratio, and
   stopping ratio families via `VGAM::vglm()` and `VGAM::vgam()` ([Yee,
@@ -29,56 +31,90 @@ combinations in the parsnip package that can be used, this package adds:
   adjacent categories, continuation ratio, and stopping ratio families
   via `ordinalNet::ordinalNet()` ([Wurm, Hanlon, and Rathouz,
   2021](https://doi.org/10.18637/jss.v099.i06))
+- regularized cumulative probability ordinal regression models via
+  `rms::lrm()` and `rms::orm()` ([Harrell,
+  2015](https://doi.org/10.1007/978-3-319-19425-7))
+- regularized elastic net continuation ratio ordinal regression via
+  `glmnetcr::glmnetcr()` ([Archer and Williams,
+  2012](https://doi.org/10.1002/sim.4484))
 - ordinal classification trees via `rpartScore::rpartScore()`
   ([Galimberti, Soffritti, and Di Maso,
   2012](https://doi.org/10.18637/jss.v047.i10))
 - latent variable ordinal forests via `ordinalForest::ordfor()`
   ([Hornung, 2020](https://doi.org/10.1007/s00357-018-9302-x))
+- conditional probability ordered forests via `orf::orf()` ([Lechner and
+  Okasa, 2025](https://doi.org/10.1007/s00181-024-02646-4))
 
-More will be added.
-
-There are some existing features in tidymodels packages that are useful
-for ordinal outcomes:
+Some features in other tidymodels packages are useful for ordinal
+outcomes:
 
 - The [partykit](https://cran.r-project.org/package=partykit) engines
-  for `parsnip::decision_tree()` and `parsnip::rand_forest()` use the
-  ordered nature of the factors to train the model.
-- The yardstick package has `yardstick::kap()` for weighted and
-  unweighted Kappa statistics (the former being of more interest). Also,
+  for `parsnip::decision_tree()` and `parsnip::rand_forest()`, provided
+  by [bonsai](https://bonsai.tidymodels.org/), use the ordinal nature of
+  ordered factors to train the model, yielding different fits than for
+  unordered factors.
+- The [yardstick](https://yardstick.tidymodels.org/) package has
+  `yardstick::kap()` for weighted and unweighted Kappa statistics (the
+  former being of more interest). Also,
   `yardstick::classification_cost()` can utilize more complex cost
   structures and uses the class probabilities for estimation.
 
 ## Installation
 
-You can install the development version of ordered like so:
+You can install the latest released version of ordered from CRAN via
+
+``` r
+install.packages("ordered")
+```
+
+and the development version of ordered from GitHub via
 
 ``` r
 # install.packages("pak")
-pak::pak("corybrunson/ordered", dependencies = FALSE)
+pak::pak("corybrunson/ordered")
 ```
 
-Currently, ordered relies on engine registration in a parsnip fork and
-dial registration in the current development version:
+or
 
 ``` r
-pak::pak("corybrunson/parsnip@ordered", dependencies = FALSE)
-pak::pak("tidymodels/dials", dependencies = FALSE)
+# install.packages("remotes")
+remotes::install_github("corybrunson/ordered")
 ```
 
 ## Available models, engines, and prediction types
 
 ordered provides new engines for several models, including all engines
-for `ordinal_reg()`, as summarized in the table. Currently only
-predictions of `type = "class"` and `type = "prob"` are supported.
+for `ordinal_reg()`:
 
-| model              | engine          | class | prob |
-|:-------------------|:----------------|:------|:-----|
-| `decision_tree`    | `rpartScore`    | ✔     | ✖    |
-| `gen_additive_mod` | `vgam`          | ✔     | ✔    |
-| `ordinal_reg`      | `polr`          | ✔     | ✔    |
-| `ordinal_reg`      | `ordinalNet`    | ✔     | ✔    |
-| `ordinal_reg`      | `vglm`          | ✔     | ✔    |
-| `rand_forest`      | `ordinalForest` | ✔     | ✔    |
+| model              | engine          | class | prob | linear_pred |
+|:-------------------|:----------------|:------|:-----|:------------|
+| `decision_tree`    | `rpartScore`    | ✔     | ✖    | ✖           |
+| `gen_additive_mod` | `vgam`          | ✔     | ✔    | ✔           |
+| `ordinal_reg`      | `polr`          | ✔     | ✔    | ✖           |
+| `ordinal_reg`      | `clm`           | ✔     | ✔    | ✔           |
+| `ordinal_reg`      | `lrm`           | ✔     | ✔    | ✔           |
+| `ordinal_reg`      | `orm`           | ✔     | ✔    | ✔           |
+| `ordinal_reg`      | `vglm`          | ✔     | ✔    | ✔           |
+| `ordinal_reg`      | `ordinalNet`    | ✔     | ✔    | ✔           |
+| `ordinal_reg`      | `glmnetcr`      | ✔     | ✔    | ✖           |
+| `rand_forest`      | `ordinalForest` | ✔     | ✔    | ✖           |
+| `rand_forest`      | `orf`           | ✔     | ✔    | ✖           |
+
+## Tunable model arguments
+
+`ordinal_reg` recognizes several model arguments, each shared by at
+least two engines in ordered, that have parameter generating functions
+in dials:
+
+| engine | ordinal_link | odds_link | threshold_structure | parallel_reg | penalty | mixture |
+|:---|:---|:---|:---|:---|:---|:---|
+| `polr` | ✔ | ✖ | ✖ | ✖ | ✖ | ✖ |
+| `clm` | ✔ | ✖ | ✔ | ✔ | ✖ | ✖ |
+| `lrm` | ✖ | ✖ | ✖ | ✖ | ✔ | ✖ |
+| `orm` | ✔ | ✖ | ✖ | ✖ | ✔ | ✖ |
+| `vglm` | ✔ | ✔ | ✔ | ✔ | ✖ | ✖ |
+| `ordinalNet` | ✔ | ✔ | ✖ | ✔ | ✔ | ✔ |
+| `glmnetcr` | ✖ | ✖ | ✖ | ✖ | ✔ | ✔ |
 
 ## Example
 
@@ -115,16 +151,16 @@ augment(ord_rf_fit, new_data = caco_test)
 #> # A tibble: 10 × 8
 #>    .pred_class .pred_L .pred_M .pred_H class mol_weight volume  ClogP
 #>    <ord>         <dbl>   <dbl>   <dbl> <ord>      <dbl>  <dbl>  <dbl>
-#>  1 M            0.370    0.384  0.246  M           123.   445.  0.799
-#>  2 M            0.250    0.533  0.217  L           290.   856.  0.534
-#>  3 M            0.178    0.801  0.0212 M           519.  1576.  1.02 
-#>  4 M            0.221    0.736  0.0431 M           533.  1606.  1.58 
-#>  5 M            0.135    0.762  0.103  M           505.  1517.  1.71 
-#>  6 M            0.0698   0.913  0.0176 M           519.  1547.  2.27 
-#>  7 M            0.220    0.738  0.0417 M           517.  1600.  1.78 
-#>  8 M            0.109    0.868  0.0229 M           531.  1631.  2.34 
-#>  9 M            0.0307   0.952  0.0177 M           517.  1572.  2.81 
-#> 10 L            0.603    0.394  0.003  L           588.  1799. -1.85
+#>  1 L            0.374    0.368  0.258  M           123.   445.  0.799
+#>  2 M            0.289    0.512  0.199  L           290.   856.  0.534
+#>  3 M            0.170    0.809  0.0212 M           519.  1576.  1.02 
+#>  4 M            0.209    0.740  0.0503 M           533.  1606.  1.58 
+#>  5 M            0.126    0.762  0.113  M           505.  1517.  1.71 
+#>  6 M            0.0657   0.917  0.0176 M           519.  1547.  2.27 
+#>  7 M            0.213    0.747  0.0401 M           517.  1600.  1.78 
+#>  8 M            0.111    0.859  0.0306 M           531.  1631.  2.34 
+#>  9 M            0.0403   0.932  0.0277 M           517.  1572.  2.81 
+#> 10 L            0.569    0.428  0.003  L           588.  1799. -1.85
 ```
 
 ## Code of Conduct
@@ -137,3 +173,8 @@ By contributing to this project, you agree to abide by its terms.
 To voice support for or volunteer to contribute additional engines,
 please comment on [this
 issue](https://github.com/corybrunson/ordered/issues/15).
+
+## Acknowledgments
+
+Jason Cory Brunson was supported in part by [NIH/NIDCD
+R01DC022733](https://reporter.nih.gov/search/oglGXI8zaU2b_BVRqwNHEA/project-details/11122743).

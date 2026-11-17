@@ -1,9 +1,12 @@
 # interfaces agree
 
     Code
-      onet_spec %>% translate()
+      translate(onet_spec)
     Output
       GAM Model Specification (classification)
+      
+      Engine-Specific Arguments:
+        parallel = TRUE
       
       Computational engine: vgam 
       
@@ -21,7 +24,7 @@
       
       Call:
       VGAM::vgam(formula = formula, family = VGAM::cumulative(link = "logitlink", 
-          parallel = TRUE), data = data)
+          parallel = TRUE, Thresh = NULL), data = data)
       
       
       Degrees of Freedom: 108 Total; 103 Residual
@@ -38,7 +41,7 @@
       
       Call:
       VGAM::vgam(formula = formula, family = VGAM::cumulative(link = "logitlink", 
-          parallel = TRUE), data = data)
+          parallel = TRUE, Thresh = NULL), data = data)
       
       
       Degrees of Freedom: 108 Total; 103 Residual
@@ -48,20 +51,21 @@
 # arguments agree
 
     Code
-      onet_arg_spec %>% translate()
+      translate(onet_arg_spec)
     Output
       GAM Model Specification (classification)
       
       Engine-Specific Arguments:
+        parallel = TRUE
         link = cloglog
-        family = stopping
+        family = stopping_ratio
       
       Computational engine: vgam 
       
       Model fit template:
       ordered::VGAM_vgam_wrapper(formula = missing_arg(), data = missing_arg(), 
-          weights = missing_arg(), link = "cloglog", family = "stopping", 
-          parallel = TRUE)
+          weights = missing_arg(), parallel = TRUE, link = "cloglog", 
+          family = "stopping_ratio")
 
 ---
 

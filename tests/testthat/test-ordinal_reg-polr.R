@@ -1,13 +1,20 @@
 
 # specification: arguments -----------------------------------------------------
 
-test_that("ordinal_link", {
+test_that("specification handles model parameters", {
   skip_if_not_installed("MASS")
   house_sub <- get_house()$sub
 
   # a legitimate ordinal link function not recognized by {dials}
-  tidy_spec <- ordinal_reg(engine = "polr", ordinal_link = "Aranda-Ordaz")
-  expect_error(fit(tidy_spec, Sat ~ Type + Infl + Cont, data = house_sub))
+  ao_spec <- ordinal_reg(engine = "polr", ordinal_link = "Aranda-Ordaz")
+  expect_error(fit(ao_spec, Sat ~ Type + Infl + Cont, data = house_sub))
+
+  # an unavailable odds link function
+  acat_spec <- ordinal_reg(engine = "polr", odds_link = "adjacent_categories")
+  expect_error(
+    fit(acat_spec, Sat ~ Type + Infl + Cont, data = house_sub),
+    "polr.*cumulative.*link"
+  )
 })
 
 # model: basic -----------------------------------------------------------------
@@ -114,10 +121,10 @@ test_that("interfaces agree", {
   skip_if_not_installed("QSARdata")
 
   olpr_spec <-
-    ordinal_reg() %>%
-    set_mode("classification") %>%
+    ordinal_reg() |>
+    set_mode("classification") |>
     set_engine("polr")
-  expect_snapshot(olpr_spec %>% translate())
+  expect_snapshot(olpr_spec |> translate())
 
   expect_no_error({
     set.seed(13)
@@ -149,9 +156,9 @@ test_that("arguments agree", {
 
   olpr_arg_spec <-
     ordinal_reg(ordinal_link = "cloglog") |>
-    set_mode("classification") %>%
+    set_mode("classification") |>
     set_engine("polr")
-  expect_snapshot(olpr_arg_spec %>% translate())
+  expect_snapshot(olpr_arg_spec |> translate())
 
   expect_snapshot({
     set.seed(13)

@@ -40,11 +40,19 @@ if (rlang::is_installed("ordinalForest")) {
 
 fit_orf <- rand_forest(mode = "classification") \%>\%
   set_engine("ordinalForest") \%>\%
-  set_args(nsets = 50, ntreefinal = 100, perffunction = "probability") \%>\%
+  set_args(nsets = 50, trees = 100, perffunction = "probability") \%>\%
   fit(Sat ~ Infl + Type + Cont, data = house_train)
 predict(fit_orf, house_test, type = "prob")
 
 }
+}
+
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://corybrunson.github.io/ordered/}
+  \item Report bugs at \url{https://github.com/corybrunson/ordered/issues}
 }
 
 }
@@ -53,6 +61,7 @@ predict(fit_orf, house_test, type = "prob")
 
 Authors:
 \itemize{
+  \item Jason Cory Brunson \email{cornelioid@gmail.com} (\href{https://orcid.org/0000-0003-3126-9494}{ORCID})
   \item Max Kuhn \email{max@posit.co} (\href{https://orcid.org/0000-0003-2402-136X}{ORCID})
 }
 

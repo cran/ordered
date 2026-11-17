@@ -1,5 +1,3 @@
-seed <- 144688L
-
 # model: basic -----------------------------------------------------------------
 
 test_that("model object", {
@@ -13,11 +11,11 @@ test_that("model object", {
   # no extra arguments
 
   set.seed(seed)
-  orig_fit <- VGAM::vgam(
+  orig_fit <- suppressWarnings(VGAM::vgam(
     class ~ mol_weight + volume + ClogP,
-    family = VGAM::cumulative(parallel = TRUE),
+    family = VGAM::cumulative(),
     data = caco_train
-  )
+  ))
 
   tidy_spec <- gen_additive_mod() |>
     set_engine("vgam") |>
@@ -42,12 +40,11 @@ test_that("model object", {
   # extra arguments
 
   set.seed(seed)
-  orig_fit <- VGAM::vgam(
+  orig_fit <- suppressWarnings(VGAM::vgam(
     class ~ s(mol_weight) + volume + ClogP,
-    # NB: Unused model parameters are ignored without comment.
-    family = VGAM::cratio(link = "probitlink", parallel = TRUE),
+    family = VGAM::cratio(link = "probitlink"),
     data = caco_train
-  )
+  ))
 
   tidy_spec <- gen_additive_mod() |>
     set_engine("vgam") |>
@@ -97,7 +94,7 @@ test_that("case weights", {
   )
 
   tidy_spec <- gen_additive_mod() |>
-    set_engine("vgam") |>
+    set_engine("vgam", parallel = TRUE) |>
     set_mode("classification")
   set.seed(seed)
   tidy_fit <- fit(
@@ -123,15 +120,19 @@ test_that("case weights", {
 test_that("class prediction", {
   skip_if_not_installed("MASS")
   skip_if_not_installed("VGAM")
+  skip_if_not(utils::packageVersion("VGAM") > package_version("1.1.9"))
   skip_if_not_installed("QSARdata")
 
   # for `s()` and friends in GAM formula
   suppressPackageStartupMessages(library(VGAM))
 
   tidy_fit <- gen_additive_mod(engine = "vgam", mode = "classification") |>
+    set_engine("vgam", parallel = TRUE) |>
     fit(class ~ s(mol_weight) + volume + s(ClogP), data = caco_train)
 
-  orig_pred <- predict(tidy_fit$fit, newdata = caco_train, type = "response")
+  orig_pred <- VGAM::predict(
+    tidy_fit$fit, newdata = caco_train, type = "response"
+  )
   orig_pred <- apply(orig_pred, 1L, which.max)
   orig_pred <- ordered(tidy_fit$lvl[orig_pred], tidy_fit$lvl)
   orig_pred <- tibble::tibble(.pred_class = orig_pred)
@@ -146,15 +147,19 @@ test_that("class prediction", {
 test_that("probability prediction", {
   skip_if_not_installed("MASS")
   skip_if_not_installed("VGAM")
+  skip_if_not(utils::packageVersion("VGAM") > package_version("1.1.9"))
   skip_if_not_installed("QSARdata")
 
   # for `s()` and friends in GAM formula
   suppressPackageStartupMessages(library(VGAM))
 
   tidy_fit <- gen_additive_mod(engine = "vgam", mode = "classification") |>
+    set_engine("vgam", parallel = TRUE) |>
     fit(class ~ mol_weight + s(volume) + s(ClogP), data = caco_train)
 
-  orig_pred <- predict(tidy_fit$fit, newdata = caco_train, type = "response")
+  orig_pred <- VGAM::predict(
+    tidy_fit$fit, newdata = caco_train, type = "response"
+  )
   orig_pred <- tibble::as_tibble(orig_pred)
   names(orig_pred) <- paste0(".pred_", names(orig_pred))
 
@@ -163,17 +168,40 @@ test_that("probability prediction", {
   expect_equal(orig_pred, tidy_pred)
 })
 
+# prediction: linear predictor -------------------------------------------------
+
+test_that("linear_pred prediction", {
+  skip_if_not_installed("MASS")
+  skip_if_not_installed("VGAM")
+  skip_if_not(utils::packageVersion("VGAM") > package_version("1.1.9"))
+  skip_if_not_installed("QSARdata")
+
+  # for `s()` and friends in GAM formula
+  suppressPackageStartupMessages(library(VGAM))
+
+  tidy_fit <- gen_additive_mod(engine = "vgam", mode = "classification") |>
+    set_engine("vgam", parallel = TRUE) |>
+    fit(class ~ s(mol_weight) + volume + s(ClogP), data = caco_train)
+
+  orig_link <- predict(tidy_fit$fit, newdata = caco_train, type = "link")
+  orig_pred <- coef(tidy_fit$fit)[1] - orig_link[, 1]
+  orig_pred <- tibble::tibble(.pred_linear_pred = unname(orig_pred))
+  tidy_pred <- predict(tidy_fit, caco_train, type = "linear_pred")
+  expect_equal(orig_pred, tidy_pred)
+})
+
 # translation & interfaces -----------------------------------------------------
 
 test_that("interfaces agree", {
   skip_if_not_installed("VGAM")
+  skip_if_not(utils::packageVersion("VGAM") > package_version("1.1.9"))
   skip_if_not_installed("QSARdata")
 
   onet_spec <-
-    gen_additive_mod() %>%
-    set_mode("classification") %>%
-    set_engine("vgam")
-  expect_snapshot(onet_spec %>% translate())
+    gen_additive_mod() |>
+    set_mode("classification") |>
+    set_engine("vgam", parallel = TRUE)
+  expect_snapshot(onet_spec |> translate())
 
   expect_no_error({
     set.seed(13)
@@ -203,10 +231,10 @@ test_that("arguments agree", {
 
   onet_arg_spec <-
     gen_additive_mod() |>
-    set_mode("classification") %>%
-    set_engine("vgam") %>%
-    set_args(link = "cloglog", family = "stopping")
-  expect_snapshot(onet_arg_spec %>% translate())
+    set_mode("classification") |>
+    set_engine("vgam", parallel = TRUE) |>
+    set_args(link = "cloglog", family = "stopping_ratio")
+  expect_snapshot(onet_arg_spec |> translate())
 
   expect_snapshot({
     set.seed(13)

@@ -44,6 +44,22 @@ make_gen_additive_mod_vgam <- function() {
     func = list(pkg = "dials", fun = "odds_link"),
     has_submodel = FALSE
   )
+  parsnip::set_model_arg(
+    model = "gen_additive_mod",
+    eng = "vgam",
+    parsnip = "Thresh",
+    original = "Thresh",
+    func = list(pkg = "dials", fun = "threshold_structure"),
+    has_submodel = FALSE
+  )
+  parsnip::set_model_arg(
+    model = "gen_additive_mod",
+    eng = "vgam",
+    parsnip = "parallel",
+    original = "parallel",
+    func = list(pkg = "dials", fun = "parallel_reg"),
+    has_submodel = FALSE
+  )
 
   parsnip::set_fit(
     model = "gen_additive_mod",
@@ -53,9 +69,7 @@ make_gen_additive_mod_vgam <- function() {
       interface = "formula",
       protect = c("formula", "data", "weights"),
       func = c(pkg = "ordered", fun = "VGAM_vgam_wrapper"),
-      defaults = list(
-        parallel = TRUE
-      )
+      defaults = list()
     )
   )
 
@@ -103,6 +117,27 @@ make_gen_additive_mod_vgam <- function() {
           object = quote(object$fit),
           newdata = quote(new_data),
           type = "response"
+        )
+    )
+  )
+
+  parsnip::set_pred(
+    model = "gen_additive_mod",
+    eng = "vgam",
+    mode = "classification",
+    type = "linear_pred",
+    value = list(
+      pre = NULL,
+      post = function(x, object) {
+        beta_x <- coef(object$fit)[1] - x[, 1]
+        tibble::tibble(.pred_linear_pred = unname(beta_x))
+      },
+      func = c(fun = "predict", pkg = "VGAM"),
+      args =
+        list(
+          object = quote(object$fit),
+          newdata = quote(new_data),
+          type = "link"
         )
     )
   )
